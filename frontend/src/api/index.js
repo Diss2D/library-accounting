@@ -26,10 +26,18 @@ export async function register({ full_name, email, password }) {
     const readerId = Math.max(0, ...readers.map((reader) => reader.id)) + 1;
     const userId = Math.max(0, ...users.map((user) => user.id)) + 1;
 
+    let cardId = readerId;
+
+    while (
+        readers.some((reader) => reader.card_number === `ЧБ-${String(cardId).padStart(3, "0")}`)
+    ) {
+        cardId++;
+    }
+
     const reader = {
         id: readerId,
         full_name: full_name.trim(),
-        card_number: `ЧБ-${String(readerId).padStart(3, "0")}`,
+        card_number: `ЧБ-${String(cardId).padStart(3, "0")}`,
     };
 
     const user = {
@@ -222,4 +230,156 @@ export async function updateCopy(id, inventoryNumber) {
     copy.inventory_number = inventoryNumber;
 
     return { ...copy };
+}
+
+export async function getReaders() {
+    return readers.map((reader) => ({ ...reader }));
+}
+
+export async function updateReader(id, data) {
+    const reader = readers.find((item) => item.id === id);
+
+    if (!reader) {
+        throw new Error("Читатель не найден");
+    }
+    if (readers.some((item) => item.card_number === data.card_number && item.id !== id)) {
+        const error = new Error("Такой номер читательского билета уже существует");
+        error.field = "card_number";
+        throw error;
+    }
+
+    Object.assign(reader, data);
+
+    return { ...reader };
+}
+
+export function getTodayDate() {
+    const today = new Date();
+
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+function getLoanStatus(loan) {
+    if (loan.return_date !== null) {
+        return "completed";
+    }
+
+    if (loan.due_date < getTodayDate()) {
+        return "overdue";
+    }
+
+    return "active";
+}
+
+export async function getLoans() {
+    return loans.map((loan) => {
+        const reader = readers.find((item) => item.id === loan.reader_id);
+
+        const copy = copies.find((item) => item.id === loan.copy_id);
+
+        const publication = publications.find((item) => item.id === copy.publication_id);
+
+        return {
+            ...loan,
+            reader_name: reader.full_name,
+            inventory_number: copy.inventory_number,
+            publication_title: publication.title,
+            status: getLoanStatus(loan),
+        };
+    });
+}
+
+export async function getAvailableCopies() {
+    return copies
+        .filter((copy) => isCopyAvailable(copy.id))
+        .map((copy) => {
+            const publication = publications.find((item) => item.id === copy.publication_id);
+
+            return {
+                ...copy,
+                publication_title: publication.title,
+                publication_author: publication.author,
+                publication_year: publication.publication_year,
+            };
+        });
+}
+
+function isValidDate(date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return false;
+    }
+
+    const value = new Date(`${date}T00:00:00Z`);
+
+    return !Number.isNaN(value.getTime()) && value.toISOString().slice(0, 10) === date;
+}
+
+export async function createLoan(data) {
+    if (!readers.some((reader) => reader.id === data.reader_id)) {
+        throw new Error("Читатель не найден");
+    }
+
+    if (!copies.some((copy) => copy.id === data.copy_id)) {
+        throw new Error("Экземпляр не найден");
+    }
+
+    if (!isCopyAvailable(data.copy_id)) {
+        throw new Error("Экземпляр уже выдан");
+    }
+
+    if (!isValidDate(data.loan_date) || !isValidDate(data.due_date)) {
+        throw new Error("Некорректная дата");
+    }
+
+    if (data.due_date < data.loan_date) {
+        throw new Error("Срок возврата не может быть раньше даты выдачи");
+    }
+
+    const id = Math.max(0, ...loans.map((loan) => loan.id)) + 1;
+
+    const loan = {
+        id,
+        reader_id: data.reader_id,
+        copy_id: data.copy_id,
+        loan_date: data.loan_date,
+        due_date: data.due_date,
+        return_date: null,
+    };
+
+    loans.push(loan);
+
+    return { ...loan };
+}
+
+export async function returnLoan(id, returnDate) {
+    const loan = loans.find((item) => item.id === id);
+
+    if (!loan) {
+        throw new Error("Выдача не найдена");
+    }
+
+    if (loan.return_date !== null) {
+        throw new Error("Экземпляр уже возвращен");
+    }
+
+    if (!isValidDate(returnDate)) {
+        throw new Error("Некорректная дата возврата");
+    }
+
+    if (returnDate < loan.loan_date) {
+        throw new Error("Дата возврата не может быть раньше даты выдачи");
+    }
+
+    loan.return_date = returnDate;
+
+    return { ...loan };
+}
+
+export async function getMyLoans(readerId) {
+    const items = await getLoans();
+
+    return items.filter((loan) => loan.reader_id === readerId);
 }
