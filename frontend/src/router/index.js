@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 import CatalogView from "../views/CatalogView.vue";
+import PublicationView from "../views/PublicationView.vue";
 import LoginView from "../views/LoginView.vue";
 import RegisterView from "../views/RegisterView.vue";
 import NotFoundView from "../views/NotFoundView.vue";
@@ -30,6 +31,12 @@ const router = createRouter({
             path: "/publications",
             name: "catalog",
             component: CatalogView,
+            meta: { requiresAuth: true },
+        },
+        {
+            path: "/publications/:id",
+            name: "publication",
+            component: PublicationView,
             meta: { requiresAuth: true },
         },
         {
