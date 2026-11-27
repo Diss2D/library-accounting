@@ -1,0 +1,121 @@
+{
+    "copies": [
+        {
+            "id": 1,
+            "publication_id": 1,
+            "inventory_number": "ИНВ-001"
+        },
+        {
+            "id": 2,
+            "publication_id": 1,
+            "inventory_number": "ИНВ-002"
+        },
+        {
+            "id": 3,
+            "publication_id": 2,
+            "inventory_number": "ИНВ-003"
+        },
+        {
+            "id": 4,
+            "publication_id": 3,
+            "inventory_number": "ИНВ-004"
+        },
+        {
+            "id": 5,
+            "publication_id": 4,
+            "inventory_number": "ИНВ-005"
+        },
+        {
+            "id": 6,
+            "publication_id": 6,
+            "inventory_number": "ИНВ-006"
+        },
+        {
+            "id": 7,
+            "publication_id": 7,
+            "inventory_number": "ИНВ-007"
+        },
+        {
+            "id": 8,
+            "publication_id": 11,
+            "inventory_number": "ИНВ-008"
+        }
+    ],
+    "readers": [
+        {
+            "id": 1,
+            "full_name": "Иванов Иван Иванович",
+            "card_number": "ЧБ-001"
+        },
+        {
+            "id": 2,
+            "full_name": "Александрова Александра Александровна",
+            "card_number": "ЧБ-002"
+        },
+        {
+            "id": 3,
+            "full_name": "Максимов Максим Максимович",
+            "card_number": "ЧБ-003"
+        }
+    ],
+    "loans": [
+        {
+            "id": 1,
+            "copy_id": 1,
+            "reader_id": 1,
+            "loan_date": "2026-11-23",
+            "due_date": "2026-12-07",
+            "return_date": null
+        },
+        {
+            "id": 2,
+            "copy_id": 3,
+            "reader_id": 1,
+            "loan_date": "2026-11-01",
+            "due_date": "2026-11-15",
+            "return_date": null
+        },
+        {
+            "id": 3,
+            "copy_id": 4,
+            "reader_id": 2,
+            "loan_date": "2026-11-05",
+            "due_date": "2026-11-19",
+            "return_date": "2026-11-17"
+        },
+        {
+            "id": 4,
+            "copy_id": 6,
+            "reader_id": 2,
+            "loan_date": "2026-11-25",
+            "due_date": "2026-12-09",
+            "return_date": null
+        }
+    ],
+    "users": [
+        {
+            "id": 1,
+            "email": "librarian@example.test",
+            "role": "librarian",
+            "reader_id": null
+        },
+        {
+            "id": 2,
+            "email": "ivanov@example.test",
+            "role": "reader",
+            "reader_id": 1
+        },
+        {
+            "id": 3,
+            "email": "alexandrova@example.test",
+            "role": "reader",
+            "reader_id": 2
+        },
+        {
+            "id": 4,
+            "email": "maksimov@example.test",
+            "role": "reader",
+            "reader_id": 3
+        }
+    ]
+}

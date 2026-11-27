@@ -1,0 +1,122 @@
+[
+    {
+        "id": 1,
+        "title": "Война и мир",
+        "author": "Л. Н. Толстой",
+        "publication_year": 1869,
+        "genre": "Роман",
+        "isbn": null
+    },
+    {
+        "id": 2,
+        "title": "Преступление и наказание",
+        "author": "Ф. М. Достоевский",
+        "publication_year": 1866,
+        "genre": "Роман",
+        "isbn": null
+    },
+    {
+        "id": 3,
+        "title": "Отцы и дети",
+        "author": "И. С. Тургенев",
+        "publication_year": 1862,
+        "genre": "Роман",
+        "isbn": null
+    },
+    {
+        "id": 4,
+        "title": "Герой нашего времени",
+        "author": "М. Ю. Лермонтов",
+        "publication_year": 1840,
+        "genre": "Роман",
+        "isbn": null
+    },
+    {
+        "id": 5,
+        "title": "Обломов",
+        "author": "И. А. Гончаров",
+        "publication_year": 1859,
+        "genre": "Роман",
+        "isbn": null
+    },
+    {
+        "id": 6,
+        "title": "Капитанская дочка",
+        "author": "А. С. Пушкин",
+        "publication_year": 1836,
+        "genre": "Повесть",
+        "isbn": null
+    },
+    {
+        "id": 7,
+        "title": "Шинель",
+        "author": "Н. В. Гоголь",
+        "publication_year": 1842,
+        "genre": "Повесть",
+        "isbn": null
+    },
+    {
+        "id": 8,
+        "title": "Детство",
+        "author": "Л. Н. Толстой",
+        "publication_year": 1852,
+        "genre": "Повесть",
+        "isbn": null
+    },
+    {
+        "id": 9,
+        "title": "Ася",
+        "author": "И. С. Тургенев",
+        "publication_year": 1858,
+        "genre": "Повесть",
+        "isbn": null
+    },
+    {
+        "id": 10,
+        "title": "Белые ночи",
+        "author": "Ф. М. Достоевский",
+        "publication_year": 1848,
+        "genre": "Повесть",
+        "isbn": null
+    },
+    {
+        "id": 11,
+        "title": "Ревизор",
+        "author": "Н. В. Гоголь",
+        "publication_year": 1836,
+        "genre": "Пьеса",
+        "isbn": null
+    },
+    {
+        "id": 12,
+        "title": "Вишневый сад",
+        "author": "А. П. Чехов",
+        "publication_year": 1904,
+        "genre": "Пьеса",
+        "isbn": null
+    },
+    {
+        "id": 13,
+        "title": "Три сестры",
+        "author": "А. П. Чехов",
+        "publication_year": 1901,
+        "genre": "Пьеса",
+        "isbn": null
+    },
+    {
+        "id": 14,
+        "title": "Гроза",
+        "author": "А. Н. Островский",
+        "publication_year": 1859,
+        "genre": "Пьеса",
+        "isbn": null
+    },
+    {
+        "id": 15,
+        "title": "На дне",
+        "author": "М. Горький",
+        "publication_year": 1902,
+        "genre": "Пьеса",
+        "isbn": null
+    }
+]
