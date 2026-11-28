@@ -8,10 +8,12 @@ from sqlalchemy.orm import Session
 
 from .auth import create_token, get_current_user, hash_password, unauthorized, verify_password
 from .database import get_db
+from .library import router
 from .models import Reader, User
 from .schemas import LoginData, RegisterData, SessionData, UserData
 
 app = FastAPI(title="Библиотечный учет")
+app.include_router(router)
 
 
 @app.post("/api/v1/users", response_model=UserData, status_code=201)
