@@ -152,3 +152,8 @@ class LoanData(BaseModel):
     inventory_number: str
     publication_title: str
     status: str
+
+
+class LoanPage(BaseModel):
+    items: list[LoanData]
+    total: int

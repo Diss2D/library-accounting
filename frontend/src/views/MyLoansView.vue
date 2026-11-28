@@ -1,14 +1,15 @@
 <script setup>
-    import { ref, onMounted } from "vue";
-
+    import { ref, computed, onMounted } from "vue";
+    import AppPagination from "../components/AppPagination.vue";
     import { getMyLoans } from "../api/index.js";
-    import { useAuthStore } from "../stores/auth.js";
-
-    const auth = useAuthStore();
 
     const loans = ref([]);
     const errorMessage = ref("");
     const loading = ref(false);
+    const page = ref(1);
+    const total = ref(0);
+    const pageSize = 10;
+    const totalPages = computed(() => Math.ceil(total.value / pageSize));
 
     const statusLabels = {
         active: "Активная",
@@ -26,12 +27,15 @@
         return date ? date.split("-").reverse().join(".") : "—";
     }
 
-    async function loadLoans() {
+    async function loadLoans(number = 1) {
         loading.value = true;
         errorMessage.value = "";
 
         try {
-            loans.value = await getMyLoans(auth.user.reader_id);
+            const result = await getMyLoans({ page: number, pageSize });
+            loans.value = result.items;
+            total.value = result.total;
+            page.value = number;
         } catch (error) {
             errorMessage.value = error.message;
         } finally {
@@ -94,5 +98,12 @@
                 </tr>
             </tbody>
         </table>
+    </div>
+    <div
+        v-if="!loading && !errorMessage"
+        class="d-flex flex-wrap justify-content-between align-items-center gap-2"
+    >
+        <span class="text-secondary small">Всего выдач: {{ total }}</span>
+        <AppPagination :page="page" :total-pages="totalPages" @change="loadLoans" />
     </div>
 </template>

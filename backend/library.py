@@ -16,6 +16,7 @@ from .schemas import (
     CopyInput,
     LoanCreate,
     LoanData,
+    LoanPage,
     LoanReturn,
     PublicationData,
     PublicationInput,
@@ -296,16 +297,77 @@ def loan_query():
     )
 
 
-@router.get("/loans", response_model=list[LoanData])
-def get_loans(db: Database, user: Librarian):
-    loans = db.scalars(loan_query().order_by(Loan.id)).all()
-    return [loan_data(loan) for loan in loans]
+def get_loan_page(db, search, status, sort, direction, page, page_size, reader_id=None):
+    query = select(Loan).join(Loan.reader).join(Loan.copy).join(Copy.publication)
+    if reader_id is not None:
+        query = query.where(Loan.reader_id == reader_id)
+    if search.strip():
+        value = search.strip()
+        query = query.where(
+            or_(
+                Reader.full_name.icontains(value, autoescape=True),
+                Reader.card_number.icontains(value, autoescape=True),
+                Publication.title.icontains(value, autoescape=True),
+                Publication.author.icontains(value, autoescape=True),
+                Copy.inventory_number.icontains(value, autoescape=True),
+            )
+        )
+    if status == "completed":
+        query = query.where(Loan.return_date.is_not(None))
+    elif status in ("open", "active", "overdue"):
+        query = query.where(Loan.return_date.is_(None))
+        if status == "active":
+            query = query.where(Loan.due_date >= date.today())
+        elif status == "overdue":
+            query = query.where(Loan.due_date < date.today())
+
+    total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
+    column = {
+        "loan_date": Loan.loan_date,
+        "reader_name": Reader.full_name,
+        "publication_title": Publication.title,
+        "inventory_number": Copy.inventory_number,
+    }[sort]
+    order = column.desc() if direction == "desc" else column.asc()
+    loans = db.scalars(
+        query.options(joinedload(Loan.reader), joinedload(Loan.copy).joinedload(Copy.publication))
+        .order_by(order, Loan.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
+    return LoanPage(items=[loan_data(loan) for loan in loans], total=total)
 
 
-@router.get("/loans/mine", response_model=list[LoanData])
-def get_my_loans(db: Database, user: CurrentReader):
-    loans = db.scalars(loan_query().where(Loan.reader_id == user.reader_id).order_by(Loan.id)).all()
-    return [loan_data(loan) for loan in loans]
+@router.get("/loans", response_model=LoanPage)
+def get_loans(
+    db: Database,
+    user: Librarian,
+    search: str = Query(default="", max_length=255),
+    status: Literal["", "open", "active", "overdue", "completed"] = "",
+    sort: Literal[
+        "loan_date", "reader_name", "publication_title", "inventory_number"
+    ] = "loan_date",
+    direction: Literal["asc", "desc"] = "desc",
+    page: int = Query(default=1, ge=1, le=2147483647),
+    page_size: int = Query(default=10, ge=1, le=100),
+):
+    return get_loan_page(db, search, status, sort, direction, page, page_size)
+
+
+@router.get("/loans/mine", response_model=LoanPage)
+def get_my_loans(
+    db: Database,
+    user: CurrentReader,
+    search: str = Query(default="", max_length=255),
+    status: Literal["", "open", "active", "overdue", "completed"] = "",
+    sort: Literal[
+        "loan_date", "reader_name", "publication_title", "inventory_number"
+    ] = "loan_date",
+    direction: Literal["asc", "desc"] = "desc",
+    page: int = Query(default=1, ge=1, le=2147483647),
+    page_size: int = Query(default=10, ge=1, le=100),
+):
+    return get_loan_page(db, search, status, sort, direction, page, page_size, user.reader_id)
 
 
 @router.get("/loans/{loan_id}", response_model=LoanData)

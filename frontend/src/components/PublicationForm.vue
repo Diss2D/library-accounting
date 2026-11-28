@@ -87,8 +87,8 @@
 
             emit("saved");
         } catch (error) {
-            if (error.field === "isbn") {
-                errors.isbn = error.message;
+            if (Object.hasOwn(errors, error.field)) {
+                errors[error.field] = error.message;
             } else {
                 errorMessage.value = error.message;
             }

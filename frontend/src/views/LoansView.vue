@@ -1,6 +1,7 @@
 <script setup>
-    import { ref, reactive, computed, watch, onMounted } from "vue";
-
+    import { ref, reactive, computed, watch, onMounted, nextTick } from "vue";
+    import AppModal from "../components/AppModal.vue";
+    import AppPagination from "../components/AppPagination.vue";
     import FormField from "../components/FormField.vue";
     import SearchSelect from "../components/SearchSelect.vue";
 
@@ -16,6 +17,16 @@
     const loans = ref([]);
     const errorMessage = ref("");
     const loading = ref(false);
+    const saving = ref(false);
+    const search = ref("");
+    const status = ref("");
+    const sort = ref("loan_date:desc");
+    const page = ref(1);
+    const total = ref(0);
+    const pageSize = 10;
+    const totalPages = computed(() => Math.ceil(total.value / pageSize));
+    const successAlert = ref(null);
+    let requestId = 0;
 
     const readers = ref([]);
     const availableCopies = ref([]);
@@ -107,19 +118,55 @@
         return date ? date.split("-").reverse().join(".") : "—";
     }
 
-    async function loadLoans() {
+    async function loadLoans(number = 1) {
+        const currentRequest = ++requestId;
+        const [field, direction] = sort.value.split(":");
         loading.value = true;
         errorMessage.value = "";
 
         try {
-            loans.value = await getLoans();
+            const result = await getLoans({
+                search: search.value,
+                status: status.value,
+                sort: field,
+                direction,
+                page: number,
+                pageSize,
+            });
+            if (currentRequest === requestId) {
+                loans.value = result.items;
+                total.value = result.total;
+                page.value = number;
+            }
         } catch (error) {
-            errorMessage.value = error.message;
+            if (currentRequest === requestId) {
+                errorMessage.value = error.message;
+            }
         } finally {
-            loading.value = false;
+            if (currentRequest === requestId) {
+                loading.value = false;
+            }
         }
     }
 
+    function resetFilters() {
+        if (!search.value && !status.value && sort.value === "loan_date:desc") {
+            loadLoans(1);
+            return;
+        }
+        search.value = "";
+        status.value = "";
+        sort.value = "loan_date:desc";
+    }
+
+    watch([search, status, sort], () => loadLoans(1));
+
+    async function showSuccess(message) {
+        successMessage.value = message;
+        await loadLoans(1);
+        await nextTick();
+        successAlert.value?.scrollIntoView({ block: "nearest" });
+    }
     async function openLoanForm() {
         if (showForm.value) {
             return;
@@ -158,6 +205,9 @@
     }
 
     async function saveLoan() {
+        if (saving.value) {
+            return;
+        }
         for (const field in errors) {
             errors[field] = "";
         }
@@ -190,6 +240,7 @@
             return;
         }
 
+        saving.value = true;
         try {
             await createLoan({
                 reader_id: form.reader_id,
@@ -198,14 +249,18 @@
                 due_date: form.due_date,
             });
         } catch (error) {
-            formError.value = error.message;
+            if (Object.hasOwn(errors, error.field)) {
+                errors[error.field] = error.message;
+            } else {
+                formError.value = error.message;
+            }
             return;
+        } finally {
+            saving.value = false;
         }
 
         closeLoanForm();
-        successMessage.value = "Выдача оформлена";
-
-        await loadLoans();
+        await showSuccess("Выдача оформлена");
     }
     function openReturnForm(loan) {
         closeLoanForm();
@@ -222,6 +277,9 @@
     }
 
     async function saveReturn() {
+        if (saving.value) {
+            return;
+        }
         returnDateError.value = "";
         returnError.value = "";
 
@@ -235,17 +293,22 @@
             return;
         }
 
+        saving.value = true;
         try {
             await returnLoan(returningLoan.value.id, returnDate.value);
         } catch (error) {
-            returnError.value = error.message;
+            if (error.field === "return_date") {
+                returnDateError.value = error.message;
+            } else {
+                returnError.value = error.message;
+            }
             return;
+        } finally {
+            saving.value = false;
         }
 
         closeReturnForm();
-        successMessage.value = "Возврат оформлен";
-
-        await loadLoans();
+        await showSuccess("Возврат оформлен");
     }
     onMounted(loadLoans);
 </script>
@@ -257,8 +320,50 @@
         <button type="button" class="btn btn-primary" @click="openLoanForm">Оформить выдачу</button>
     </div>
 
-    <div v-if="successMessage" class="alert alert-success">
+    <div v-if="successMessage" ref="successAlert" class="alert alert-success" role="status">
         {{ successMessage }}
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-5">
+            <label for="loan-search" class="form-label">Поиск</label>
+            <input
+                id="loan-search"
+                v-model="search"
+                class="form-control"
+                type="search"
+                maxlength="255"
+                placeholder="Читатель, издание или инвентарный номер"
+            />
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <label for="loan-status" class="form-label">Состояние</label>
+            <select id="loan-status" v-model="status" class="form-select">
+                <option value="">Все выдачи</option>
+                <option value="open">Незавершенные</option>
+                <option value="active">Активные</option>
+                <option value="overdue">Просроченные</option>
+                <option value="completed">Завершенные</option>
+            </select>
+        </div>
+        <div class="col-sm-6 col-lg-4">
+            <label for="loan-sort" class="form-label">Сортировка</label>
+            <select id="loan-sort" v-model="sort" class="form-select">
+                <option value="loan_date:desc">По дате выдачи (сначала новые)</option>
+                <option value="loan_date:asc">По дате выдачи (сначала старые)</option>
+                <option value="reader_name:asc">По читателю (А–Я)</option>
+                <option value="reader_name:desc">По читателю (Я–А)</option>
+                <option value="publication_title:asc">По изданию (А–Я)</option>
+                <option value="publication_title:desc">По изданию (Я–А)</option>
+                <option value="inventory_number:asc">По экземпляру (по возрастанию)</option>
+                <option value="inventory_number:desc">По экземпляру (по убыванию)</option>
+            </select>
+        </div>
+        <div>
+            <button type="button" class="btn btn-outline-secondary btn-sm" @click="resetFilters">
+                Сбросить фильтры
+            </button>
+        </div>
     </div>
 
     <div v-if="errorMessage" class="alert alert-danger">
@@ -324,15 +429,21 @@
                 </tr>
 
                 <tr v-if="loans.length === 0">
-                    <td colspan="5" class="text-center text-secondary py-3">Выдачи отсутствуют</td>
+                    <td colspan="7" class="text-center text-secondary py-3">Выдачи отсутствуют</td>
                 </tr>
             </tbody>
         </table>
     </div>
 
-    <div v-if="showForm" class="card p-3 mt-4">
-        <h2 class="h5 mb-3">Оформление выдачи</h2>
+    <div
+        v-if="!loading && !errorMessage"
+        class="d-flex flex-wrap justify-content-between align-items-center gap-2"
+    >
+        <span class="text-secondary small">Найдено записей: {{ total }}</span>
+        <AppPagination :page="page" :total-pages="totalPages" @change="loadLoans" />
+    </div>
 
+    <AppModal v-if="showForm" title="Оформление выдачи" :busy="saving" @close="closeLoanForm">
         <div v-if="formError" class="alert alert-danger">
             {{ formError }}
         </div>
@@ -392,18 +503,26 @@
             </div>
 
             <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-outline-secondary" @click="closeLoanForm">
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    :disabled="saving"
+                    @click="closeLoanForm"
+                >
                     Отмена
                 </button>
 
-                <button type="submit" class="btn btn-primary">Оформить</button>
+                <button type="submit" class="btn btn-primary" :disabled="saving">Оформить</button>
             </div>
         </form>
-    </div>
+    </AppModal>
 
-    <div v-if="returningLoan" class="card p-3 mt-4">
-        <h2 class="h5 mb-3">Оформление возврата</h2>
-
+    <AppModal
+        v-if="returningLoan"
+        title="Оформление возврата"
+        :busy="saving"
+        @close="closeReturnForm"
+    >
         <div v-if="returnError" class="alert alert-danger">
             {{ returnError }}
         </div>
@@ -430,12 +549,17 @@
             </div>
 
             <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-outline-secondary" @click="closeReturnForm">
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    :disabled="saving"
+                    @click="closeReturnForm"
+                >
                     Отмена
                 </button>
 
-                <button type="submit" class="btn btn-primary">Вернуть</button>
+                <button type="submit" class="btn btn-primary" :disabled="saving">Вернуть</button>
             </div>
         </form>
-    </div>
+    </AppModal>
 </template>

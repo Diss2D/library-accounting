@@ -8,8 +8,8 @@
 </script>
 
 <template>
-    <nav v-if="totalPages > 1" aria-label="Страницы каталога">
-        <ul class="pagination pagination-sm mb-0">
+    <nav v-if="totalPages > 1" aria-label="Страницы списка">
+        <ul class="pagination pagination-sm flex-wrap mb-0">
             <li class="page-item" :class="{ disabled: page === 1 }">
                 <button class="page-link" :disabled="page === 1" @click="emit('change', page - 1)">
                     Назад

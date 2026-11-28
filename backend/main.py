@@ -2,17 +2,25 @@ from typing import Annotated
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .auth import create_token, get_current_user, hash_password, unauthorized, verify_password
+from .config import FRONTEND_ORIGIN
 from .database import get_db
 from .library import router
 from .models import Reader, User
 from .schemas import LoginData, RegisterData, SessionData, UserData
 
 app = FastAPI(title="Библиотечный учет")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[FRONTEND_ORIGIN],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 app.include_router(router)
 
 

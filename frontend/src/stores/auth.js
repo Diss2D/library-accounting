@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { login as loginUser } from "../api/index.js";
+import { login as loginUser, setAccessToken } from "../api/index.js";
 
 export const useAuthStore = defineStore("auth", {
     state: () => ({
@@ -13,11 +13,28 @@ export const useAuthStore = defineStore("auth", {
 
     actions: {
         async login(email, password) {
-            this.user = await loginUser({ email, password });
+            const session = await loginUser({ email, password });
+            setAccessToken(session.access_token);
+            this.user = session.user;
+            sessionStorage.setItem("library-session", JSON.stringify(session));
+        },
+
+        restoreSession() {
+            try {
+                const session = JSON.parse(sessionStorage.getItem("library-session"));
+                if (session?.access_token && session.user) {
+                    setAccessToken(session.access_token);
+                    this.user = session.user;
+                }
+            } catch {
+                this.logout();
+            }
         },
 
         logout() {
+            setAccessToken(null);
             this.user = null;
+            sessionStorage.removeItem("library-session");
         },
     },
 });

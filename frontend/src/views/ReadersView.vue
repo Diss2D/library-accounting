@@ -76,8 +76,8 @@
                 card_number: cardNumber,
             });
         } catch (error) {
-            if (error.field === "card_number") {
-                errors.card_number = error.message;
+            if (Object.hasOwn(errors, error.field)) {
+                errors[error.field] = error.message;
             } else {
                 errorMessage.value = error.message;
             }

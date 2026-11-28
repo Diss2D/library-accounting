@@ -43,7 +43,11 @@
         try {
             await auth.login(form.email, form.password);
         } catch (error) {
-            errors.password = error.message;
+            if (error.field === "email") {
+                errors.email = error.message;
+            } else {
+                errors.password = error.message;
+            }
             return;
         }
 

@@ -50,7 +50,11 @@
         try {
             await register(form);
         } catch (error) {
-            errors.email = error.message;
+            if (Object.hasOwn(errors, error.field)) {
+                errors[error.field] = error.message;
+            } else {
+                errors.email = error.message;
+            }
             return;
         }
 
